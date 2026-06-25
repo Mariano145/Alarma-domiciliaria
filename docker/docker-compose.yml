@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: soft-eng-postgres
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - soft-eng-network
+
+  flask:
+    build:
+      context: ..
+      dockerfile: docker/flask.Dockerfile
+    container_name: soft-eng-flask
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      # Dentro de Docker, Flask se conecta al servicio postgres por nombre
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - soft-eng-network
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/nextjs.Dockerfile
+      args:
+        # El browser accede al Flask desde el host, no desde dentro de Docker
+        NEXT_PUBLIC_API_URL: http://localhost:5000
+    container_name: soft-eng-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - flask
+    networks:
+      - soft-eng-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  soft-eng-network:
+    driver: bridge

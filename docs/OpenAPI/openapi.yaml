@@ -1,0 +1,432 @@
+openapi: 3.0.3
+info:
+  title: Home Alarm API
+  version: 1.0.0
+  description: |
+    API for ingesting ESP32 alarm events, querying persisted history, and exposing
+    live state + analytics for the frontend.
+
+servers:
+  - url: http://localhost:8080
+
+tags:
+  - name: firmware
+    description: Endpoints consumed by ESP32 firmware.
+  - name: events
+    description: Event ingestion and historical queries.
+  - name: alarm
+    description: Current alarm state.
+  - name: analytics
+    description: Backend algorithms / derived metrics.
+
+paths:
+  /api/v1/events:
+    post:
+      tags: [firmware, events]
+      summary: Ingest an event emitted by the ESP32 firmware
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventIngestRequest"
+            examples:
+              door-open:
+                summary: Door opened
+                value:
+                  type: DOOR_STATE_CHANGED
+                  deviceId: esp32-alarma
+                  payload:
+                    state: OPEN
+              pin-fail:
+                summary: PIN attempt failed
+                value:
+                  type: PIN_ATTEMPT
+                  deviceId: esp32-alarma
+                  payload:
+                    result: FAIL
+              motion-detected:
+                summary: Motion detected by PIR sensor
+                value:
+                  type: MOTION_DETECTED
+                  deviceId: esp32-alarma
+                  payload: {}
+      responses:
+        "201":
+          description: Event accepted and persisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventIngestResponse"
+              examples:
+                ok:
+                  value:
+                    eventId: 01J0Z0YQ8F2X9JQ2A8G7M6N1P3
+                    receivedAt: "2026-06-03T20:15:10Z"
+        "400":
+          description: Invalid payload (not persisted)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      tags: [events]
+      summary: Query persisted events (historical)
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/EventType"
+        - name: from
+          in: query
+          required: false
+          description: Filter by receivedAt >= from
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: Filter by receivedAt <= to
+          schema:
+            type: string
+            format: date-time
+        - name: deviceId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paged list of events (sorted by receivedAt DESC)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventPage"
+              examples:
+                history-sample:
+                  summary: Ejemplo de historial de eventos paginado
+                  value:
+                    items:
+                      - eventId: "01J0Z0YQ8F2X9JQ2A8G7M6N1P3"
+                        receivedAt: "2026-06-03T20:15:10Z"
+                        type: "DOOR_STATE_CHANGED"
+                        payload:
+                          state: "OPEN"
+                      - eventId: "01J0Z0YQ8F2X9JQ2A8G7M6N1P2"
+                        receivedAt: "2026-06-03T20:14:00Z"
+                        type: "PIN_ATTEMPT"
+                        payload:
+                          result: "FAIL"
+                    limit: 50
+                    offset: 0
+                    total: 2
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/alarm/state:
+    get:
+      tags: [alarm]
+      summary: Get current alarm state for live UI
+      responses:
+        "200":
+          description: Current alarm state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlarmStateResponse"
+              examples:
+                armed-wait:
+                  value:
+                    stateCode: ARMING_WAIT
+                    stateLabel: Espera
+                    updatedAt: "2026-06-03T20:16:00Z"
+                    lastEventId: 01J0Z0YQ8F2X9JQ2A8G7M6N1P3
+                    lastEventType: ARM_BUTTON_PRESSED
+
+  /api/v1/analytics:
+    get:
+      tags: [analytics]
+      summary: Get derived metrics and algorithm outputs (fixed 10-minute window)
+      responses:
+        "200":
+          description: Derived metrics calculated from persisted events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsResponse"
+              examples:
+                sample:
+                  value:
+                    windowMinutes: 10
+                    counts:
+                      doorOpens: 2
+                      doorStateChanges: 4
+                      pinFails: 1
+                      panicPresses: 0
+                      motionDetections: 3
+                    pinFailSuspicious:
+                      active: false
+                      activateAt: 3
+                      deactivateAt: 1
+                    doorOpenAnomaly:
+                      active: false
+                      threshold: 6
+                    calculatedAt: "2026-06-03T20:17:00Z"
+
+components:
+  schemas:
+    EventType:
+      type: string
+      enum:
+        - DOOR_STATE_CHANGED
+        - ARM_BUTTON_PRESSED
+        - PANIC_BUTTON_PRESSED
+        - PIN_ATTEMPT
+        - MOTION_DETECTED
+        - ARMING_TIMEOUT
+        - ENTRY_TIMEOUT
+
+    EventIngestRequest:
+      type: object
+      additionalProperties: false
+      required: [type, deviceId, payload]
+      properties:
+        type:
+          $ref: "#/components/schemas/EventType"
+        deviceId:
+          type: string
+          minLength: 1
+          example: esp32-alarma
+        occurredAt:
+          type: string
+          format: date-time
+          description: Optional device timestamp (may be unreliable). Backend will always set receivedAt.
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/DoorStateChangedPayload"
+            - $ref: "#/components/schemas/ArmButtonPressedPayload"
+            - $ref: "#/components/schemas/PanicButtonPressedPayload"
+            - $ref: "#/components/schemas/PinAttemptPayload"
+            - $ref: "#/components/schemas/MotionDetectedPayload"
+            - $ref: "#/components/schemas/ArmingTimeoutPayload"
+            - $ref: "#/components/schemas/EntryTimeoutPayload"
+
+    DoorStateChangedPayload:
+      type: object
+      additionalProperties: false
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [OPEN, CLOSED]
+
+    ArmButtonPressedPayload:
+      type: object
+      additionalProperties: false
+      properties: {}
+
+    PanicButtonPressedPayload:
+      type: object
+      additionalProperties: false
+      properties: {}
+
+    PinAttemptPayload:
+      type: object
+      additionalProperties: false
+      required: [result]
+      properties:
+        result:
+          type: string
+          enum: [SUCCESS, FAIL]
+
+    MotionDetectedPayload:
+      type: object
+      additionalProperties: false
+      properties: {}
+
+    ArmingTimeoutPayload:
+      type: object
+      additionalProperties: false
+      properties: {}
+
+    EntryTimeoutPayload:
+      type: object
+      additionalProperties: false
+      properties: {}
+
+    EventIngestResponse:
+      type: object
+      additionalProperties: false
+      required: [eventId, receivedAt]
+      properties:
+        eventId:
+          type: string
+          description: Backend-generated identifier for the persisted event
+        receivedAt:
+          type: string
+          format: date-time
+
+    EventItem:
+      type: object
+      additionalProperties: false
+      required: [eventId, receivedAt, type, payload]
+      properties:
+        eventId:
+          type: string
+        receivedAt:
+          type: string
+          format: date-time
+        type:
+          $ref: "#/components/schemas/EventType"
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/DoorStateChangedPayload"
+            - $ref: "#/components/schemas/ArmButtonPressedPayload"
+            - $ref: "#/components/schemas/PanicButtonPressedPayload"
+            - $ref: "#/components/schemas/PinAttemptPayload"
+            - $ref: "#/components/schemas/MotionDetectedPayload"
+            - $ref: "#/components/schemas/ArmingTimeoutPayload"
+            - $ref: "#/components/schemas/EntryTimeoutPayload"
+
+    EventPage:
+      type: object
+      additionalProperties: false
+      required: [items, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventItem"
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+          description: Optional total count of matching records
+
+    AlarmStateCode:
+      type: string
+      enum: [DISARMED, ARMING_WAIT, ARMED_COUNTDOWN, ALARM]
+
+    AlarmStateResponse:
+      type: object
+      additionalProperties: false
+      required: [stateCode, stateLabel, updatedAt, lastEventId, lastEventType]
+      properties:
+        stateCode:
+          $ref: "#/components/schemas/AlarmStateCode"
+        stateLabel:
+          type: string
+          example: Espera
+        updatedAt:
+          type: string
+          format: date-time
+        lastEventId:
+          type: string
+        lastEventType:
+          $ref: "#/components/schemas/EventType"
+
+    AnalyticsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          windowMinutes,
+          counts,
+          pinFailSuspicious,
+          doorOpenAnomaly,
+          calculatedAt,
+        ]
+      properties:
+        windowMinutes:
+          type: integer
+          enum: [10]
+        counts:
+          $ref: "#/components/schemas/AnalyticsCounts"
+        pinFailSuspicious:
+          $ref: "#/components/schemas/PinFailSuspiciousResult"
+        doorOpenAnomaly:
+          $ref: "#/components/schemas/DoorOpenAnomalyResult"
+        calculatedAt:
+          type: string
+          format: date-time
+
+    AnalyticsCounts:
+      type: object
+      additionalProperties: false
+      required: [doorOpens, doorStateChanges, pinFails, panicPresses, motionDetections]
+      properties:
+        doorOpens:
+          type: integer
+          minimum: 0
+        doorStateChanges:
+          type: integer
+          minimum: 0
+        pinFails:
+          type: integer
+          minimum: 0
+        panicPresses:
+          type: integer
+          minimum: 0
+        motionDetections:
+          type: integer
+          minimum: 0
+
+    PinFailSuspiciousResult:
+      type: object
+      additionalProperties: false
+      required: [active, activateAt, deactivateAt]
+      properties:
+        active:
+          type: boolean
+        activateAt:
+          type: integer
+          enum: [3]
+        deactivateAt:
+          type: integer
+          enum: [1]
+
+    DoorOpenAnomalyResult:
+      type: object
+      additionalProperties: false
+      required: [active, threshold]
+      properties:
+        active:
+          type: boolean
+        threshold:
+          type: integer
+          enum: [6]
+
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

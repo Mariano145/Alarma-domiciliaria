@@ -1,0 +1,66 @@
+name: CI Pipeline Alarma IoT
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["develop", "master"]
+
+jobs:
+  # Backend (Flask + Python)
+  backend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/flask/final_project
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/flask/final_project/requirements.txt
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Unit Tests (pytest)
+        run: pytest
+
+  # Frontend (Next.js + pnpm)
+  frontend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: frontend/dashboard/pnpm-lock.yaml
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm run build
+      - name: Lint
+        run: pnpm run lint
+      - name: Unit Tests (vitest)
+        run: pnpm test:run
+
+  # Firmware (ESP32 + PlatformIO)
+  firmware-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar PlatformIO
+        run: pip install -U platformio
+      - name: Firmware Tests (native)
+        working-directory: firmware/esp32
+        run: pio test -e native_test

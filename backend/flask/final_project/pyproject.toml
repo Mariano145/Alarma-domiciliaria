@@ -1,0 +1,29 @@
+# backend/pyproject.toml
+
+[tool.ruff]
+# Target Python version matching your environment
+target-version = "py311"
+# Same as Black's default line length
+line-length = 88 
+
+[tool.ruff.lint]
+# Enable specific rule sets
+# E/W: Pycodestyle (PEP 8 style guide)
+# F: Pyflakes (detects bugs, unused variables/imports)
+# I: Isort (auto-sorting imports)
+# B: Flake8-bugbear (finds design flaws and likely bugs)
+select = ["E", "W", "F", "I", "B"]
+
+# Ignore specific rules if needed (leave empty for strict linting)
+ignore = []
+
+[tool.ruff.lint.isort]
+# Treat 'services' and other local directories as first-party modules for clean sorting
+known-first-party = ["services", "models", "routes"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*", "*Tests"]
+pythonpath = ["."]
+addopts = "-v --tb=short"

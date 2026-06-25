@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# Agregar rutas comunes al PATH
+export PATH="$HOME/.local/bin:$HOME/.local/share/pnpm/bin:$PATH"
+
+echo "[Git Hook Local] Ejecutando Linters antes del commit..."
+
+# 1. Backend (Flask + ruff)
+echo "Revisando Backend (ruff)..."
+if ! command -v ruff >/dev/null 2>&1; then
+  echo "❌ ruff no está instalado. Instalalo con: pip install ruff"
+  exit 1
+fi
+cd backend/flask/final_project || exit 1
+ruff check . || exit 1
+cd ../../.. || exit 1
+
+# 2. Frontend (Next.js + eslint)
+echo "Revisando Frontend (eslint)..."
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "❌ pnpm no está instalado. Instalalo con: npm install -g pnpm"
+  exit 1
+fi
+cd frontend/dashboard || exit 1
+npx eslint . || exit 1
+cd ../.. || exit 1
+
+# 3. Firmware (ESP32 + PlatformIO)
+echo "Revisando Firmware (pio check)..."
+if ! command -v pio >/dev/null 2>&1; then
+  echo "❌ PlatformIO no está instalado. Instalalo con: pip install -U platformio"
+  exit 1
+fi
+cd firmware/esp32 || exit 1
+pio check || exit 1
+cd ../.. || exit 1
+
+echo "✅ ¡Espectacular! Todos los linters pasaron sin errores."
+exit 0

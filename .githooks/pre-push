@@ -1,0 +1,64 @@
+#!/bin/sh
+
+# Agregar rutas comunes al PATH
+export PATH="$HOME/.local/bin:$HOME/.local/share/pnpm/bin:$PATH"
+
+echo "[Git Hook Local] Ejecutando tests antes de pushear..."
+
+# 1. Backend (Flask + pytest)
+echo "Corriendo tests del Backend (pytest)..."
+if ! command -v pytest >/dev/null 2>&1; then
+  echo "❌ pytest no está instalado. Instalalo con: pip install pytest"
+  exit 1
+fi
+cd backend/flask/final_project || exit 1
+pytest
+PYTEST_EXIT=$?
+cd ../../.. || exit 1
+
+# pytest exit code 5 = no tests collected (OK por ahora)
+if [ $PYTEST_EXIT -ne 0 ] && [ $PYTEST_EXIT -ne 5 ]; then
+  echo "❌ Tests del backend fallaron"
+  exit 1
+fi
+
+# 2. Frontend (Next.js + Vitest)
+echo "Corriendo tests del Frontend (vitest)..."
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "❌ pnpm no está instalado. Instalalo con: npm install -g pnpm"
+  exit 1
+fi
+cd frontend/dashboard || exit 1
+pnpm test:run
+VITEST_EXIT=$?
+cd ../.. || exit 1
+
+if [ $VITEST_EXIT -ne 0 ]; then
+  echo "❌ Tests del frontend fallaron"
+  exit 1
+fi
+
+# 3. Firmware (ESP32 + PlatformIO)
+echo "Corriendo tests del Firmware (pio test)..."
+if ! command -v pio >/dev/null 2>&1; then
+  echo "❌ PlatformIO no está instalado. Instalalo con: pip install -U platformio"
+  exit 1
+fi
+cd firmware/esp32 || exit 1
+
+# Verificar si hay tests antes de correr
+if [ -d "test" ] && [ "$(ls -A test/ 2>/dev/null)" ]; then
+  pio test -e native_test
+  PIO_EXIT=$?
+  if [ $PIO_EXIT -ne 0 ]; then
+    echo "❌ Tests del firmware fallaron"
+    exit 1
+  fi
+else
+  echo "No hay tests de firmware todavía (skip)"
+fi
+
+cd ../.. || exit 1
+
+echo "¡Todos los tests pasaron correctamente!"
+exit 0
