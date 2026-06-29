@@ -1,13 +1,13 @@
 # Jira
 
-Esta materia requiere que el repositorio referencie sin ambigüedad el proyecto Jira utilizado por el equipo (nombre, URL y prefijo de claves).
+This course requires the repository to unambiguously reference the Jira project used by the team (name, URL, and key prefix).
 
-## Proyecto
+## Project
 
-- **Nombre**: Proyecto IoT Software
+- **Name**: Proyecto IoT Software
 - **Key prefix**: `IOT`
 - **URL**: https://proyectofacu.atlassian.net/jira/software/projects/IOT/boards/68
 
-## Vistas útiles
+## Useful Views
 
-- **Backlog / lista**: https://proyectofacu.atlassian.net/jira/software/projects/IOT/list
+- **Backlog / list**: https://proyectofacu.atlassian.net/jira/software/projects/IOT/list

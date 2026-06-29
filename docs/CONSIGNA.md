@@ -1,490 +1,490 @@
-# Consigna — Proyecto final IoT
+# Project Brief — Final IoT Project
 
-**Universidad Nacional de Córdoba** · Facultad de Ciencias Exactas, Físicas y Naturales · Ingeniería de Software
+**Universidad Nacional de Cordoba** · Facultad de Ciencias Exactas, Fisicas y Naturales · Software Engineering
 
-Este documento define **obligaciones** y **criterios de aceptación** del trabajo final. Los **requisitos funcionales y no funcionales** los plantea **el equipo** (Jira, `docs/`, entregas de la materia, etc.) con la libertad de forma y granularidad que corresponda, siempre que el resultado sea **compatible** con todo lo exigido aquí: esta consigna actúa como **conjunto de restricciones (constraints)**.
-
----
-
-## Resumen rápido
-
-| Ámbito | Qué se exige |
-|--------|----------------|
-| Proceso | **Jira en la web** con **proyecto nuevo** del equipo; PRs obligatorias para trabajo de historias; **mínimo 2 aprobaciones** por PR; cada commit integrado con **clave de historia** (`KEY-NNN`); aporte de código **parejo**; **workflow Git documentado** (se recomienda [Gitflow — Atlassian](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow)); **convención de commits documentada** (se recomienda [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.4/)); **hooks** `pre-commit` y `pre-push` instalables por el equipo; **linter** en repo y ejecutado en **pre-commit** (no hace falta repetir lint en Actions) |
-| ESP32 | Recopilación de eventos del entorno (botones, sensores, potenciómetros, teclados, etc.); **≥3 canales o modalidades** distintas en la demo |
-| Backend | **Un solo framework** elegido por el equipo; **≥3 algoritmos** distintos sobre datos persistidos o ligados a PostgreSQL; validación y códigos HTTP coherentes |
-| Datos | Todo lo que ingresa desde la ESP32 debe **guardarse en histórico** en **PostgreSQL** |
-| Integración | **REST** entre ESP32↔backend y frontend↔backend; el **frontend no puede** llamar a la ESP32 **directamente** |
-| Contratos | API acordada y **documentada antes** (p. ej. OpenAPI en el repo) |
-| Frontend | Consulta **histórica** (tablas u otro formato estructurado) y visualización **en vivo** de sensores y salidas de algoritmos (gráficos, texto o tablas a criterio del equipo) |
-| Patrones | **Observer** obligatorio (**≥2** estructuras concretas); **Strategy** obligatorio; **≥1 tercer patrón GoF** a elección del grupo, justificado por escrito |
-| Reactividad | No usar **solo** `useState` (u otro estado reactivo local) como mecanismo único para propagar datos de dominio: las actualizaciones relevantes **deben pasar** por las abstracciones Observer definidas |
-| Idioma | **Código y comentarios en inglés**; informes y Jira pueden estar en español |
-| GitHub Actions | Solo **GitHub Actions**: **`.github/workflows/`**; en **PRs** hacia integración: como mínimo **build + tests unitarios** del **backend** elegido; **frontend:** **build + tests unitarios**; **firmware:** **`pio test`** (tests unitarios PlatformIO). **No** es obligatorio ejecutar el **linter** otra vez en el pipeline (alcanza con **pre-commit**). Jobs requeridos / branch protection documentados |
-| Testing | **Backend, frontend y firmware:** solo **tests unitarios**; se **valoran** en backend tests de integración/API. Los comandos de **test** deben coincidir entre **GitHub Actions**, **pre-push** y documentación local |
-| Diseño UML (previo al código) | **Antes** de implementar funcionalidad sustantiva: **(1)** diagrama de **componentes** (arquitectura); **(2)** diagrama de **clases** al menos del **backend**; **(3)** **uno o más** diagramas de **secuencia** para flujos relevantes. Fuente + vista exportada en `docs/` |
+This document defines the **obligations** and **acceptance criteria** for the final project. The **functional and non-functional requirements** are defined by **the team** (Jira, `docs/`, course deliverables, etc.) with the freedom of form and granularity appropriate, as long as the result is **compatible** with everything required here: this brief acts as a **set of constraints**.
 
 ---
 
-# 1. Requisitos del producto
+## Quick Summary
 
-## 1.1 Alcance general
-
-El equipo debe desarrollar un sistema IoT funcional compuesto por:
-
-* un **firmware para ESP32**,
-* un **backend**,
-* una **base de datos PostgreSQL**,
-* y un **frontend**.
-
-El sistema debe poder demostrarse de punta a punta en una demo funcional.
-
-**Criterio de aceptación:** en la evaluación final debe poder observarse el flujo completo **ESP32 → backend → PostgreSQL → frontend**. 
+| Scope | What is required |
+|-------|-----------------|
+| Process | **Jira on the web** with a **new team project**; PRs mandatory for story work; **minimum 2 approvals** per PR; each commit integrated with **story key** (`KEY-NNN`); **even code contribution**; **documented Git workflow** ([Gitflow — Atlassian](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) recommended); **documented commit convention** ([Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.4/) recommended); **pre-commit** and **pre-push** **hooks** installable by the team; **linter** in repo and executed in **pre-commit** (no need to repeat lint in Actions) |
+| ESP32 | Collection of environmental events (buttons, sensors, potentiometers, keypads, etc.); **>=3 distinct channels or modalities** in the demo |
+| Backend | **Single framework** chosen by the team; **>=3 distinct algorithms** on persisted data or tied to PostgreSQL; consistent validation and HTTP codes |
+| Data | Everything entering from the ESP32 must be **saved in historical storage** in **PostgreSQL** |
+| Integration | **REST** between ESP32<->backend and frontend<->backend; the **frontend cannot** call the ESP32 **directly** |
+| Contracts | API agreed upon and **documented beforehand** (e.g. OpenAPI in the repo) |
+| Frontend | **Historical query** (tables or other structured format) and **live visualization** of sensors and algorithm outputs (charts, text, or tables at the team's discretion) |
+| Patterns | **Observer** mandatory (**>=2** concrete structures); **Strategy** mandatory; **>=1 third GoF pattern** chosen by the team, justified in writing |
+| Reactivity | Must not use **only** `useState` (or other local reactive state) as the sole mechanism for propagating domain data: relevant updates **must pass** through the defined Observer abstractions |
+| Language | **Code and comments in English**; reports and Jira may be in Spanish |
+| GitHub Actions | Only **GitHub Actions**: **`.github/workflows/`**; on **PRs** to integration: at minimum **build + unit tests** for the chosen **backend**; **frontend:** **build + unit tests**; **firmware:** **`pio test`** (PlatformIO unit tests). **Not** required to run the **linter** again in the pipeline (**pre-commit** is sufficient). Required jobs / branch protection documented |
+| Testing | **Backend, frontend and firmware:** only **unit tests**; integration/API tests are **valued** in the backend. **Test** commands must match across **GitHub Actions**, **pre-push**, and local documentation |
+| UML Design (before code) | **Before** implementing substantive functionality: **(1)** **component** diagram (architecture); **(2)** **class** diagram at least for the **backend**; **(3)** **one or more** **sequence** diagrams for relevant flows. Source + exported view in `docs/` |
 
 ---
 
-## 1.2 Adquisición mínima desde ESP32
+# 1. Product Requirements
 
-El firmware de ESP32 debe capturar información proveniente de **al menos tres modalidades de entrada distintas** del entorno o de interacción humana.
+## 1.1 General Scope
 
-Se consideran modalidades distintas, por ejemplo:
+The team must develop a functional IoT system composed of:
 
-* botón,
-* sensor analógico,
-* sensor digital,
-* potenciómetro,
-* teclado matricial,
+* **ESP32 firmware**,
+* a **backend**,
+* a **PostgreSQL database**,
+* and a **frontend**.
+
+The system must be demonstrable end-to-end in a functional demo.
+
+**Acceptance criterion:** during the final evaluation, the complete flow **ESP32 -> backend -> PostgreSQL -> frontend** must be observable.
+
+---
+
+## 1.2 Minimum Acquisition from ESP32
+
+The ESP32 firmware must capture information from **at least three distinct input modalities** from the environment or human interaction.
+
+Distinct modalities include, for example:
+
+* button,
+* analog sensor,
+* digital sensor,
+* potentiometer,
+* matrix keypad,
 * encoder,
-* interruptor,
-* sensor de distancia,
-* sensor de temperatura.
+* switch,
+* distance sensor,
+* temperature sensor.
 
-No cuentan como modalidades distintas tres sensores del mismo tipo sin diferencia funcional clara.
+Three sensors of the same type without a clear functional difference do not count as distinct modalities.
 
-**Criterio de aceptación:** durante la demo se observan **tres modalidades distintas** generando eventos o mediciones que ingresan efectivamente al sistema.
-
----
-
-## 1.3 Persistencia histórica
-
-Todo evento, telemetría o dato aceptado por el backend desde la ESP32 debe persistirse en **PostgreSQL** y permanecer disponible para consulta posterior, aun cuando el dispositivo esté apagado o desconectado.
-
-**Criterio de aceptación:** tras desconectar la ESP32, el frontend o una herramienta de consulta puede recuperar datos previamente almacenados.
+**Acceptance criterion:** during the demo, **three distinct modalities** generating events or measurements that effectively enter the system must be observed.
 
 ---
 
-## 1.4 Frontend: histórico y visualización en vivo
+## 1.3 Historical Persistence
 
-El frontend debe ofrecer:
+Every event, telemetry, or data accepted by the backend from the ESP32 must be persisted in **PostgreSQL** and remain available for subsequent queries, even when the device is powered off or disconnected.
 
-* al menos una vista de **consulta histórica** en formato estructurado (tabla, lista tabular, grilla u otro formato equivalente),
-* y al menos una vista de **actualización en vivo** de:
-
-  * datos provenientes de sensores o entradas,
-  * y resultados generados por algoritmos del backend.
-
-La actualización en vivo debe producirse **sin requerir refresh manual del navegador**.
-
-**Criterio de aceptación:** durante la demo se puede consultar histórico y observar actualizaciones nuevas en la interfaz sin recargar manualmente la página. 
+**Acceptance criterion:** after disconnecting the ESP32, the frontend or a query tool can retrieve previously stored data.
 
 ---
 
-# 2. Requisitos de arquitectura y técnicos
+## 1.4 Frontend: Historical Data and Live Visualization
 
-## 2.1 Integración entre componentes
+The frontend must provide:
 
-La comunicación entre componentes debe respetar estas reglas:
+* at least one **historical query** view in structured format (table, tabular list, grid, or other equivalent format),
+* and at least one **live update** view of:
 
-* **ESP32 ↔ backend:** mediante HTTP REST documentado.
-* **Frontend ↔ backend:** mediante HTTP REST documentado.
-* El **frontend no puede comunicarse directamente con la ESP32** para acceder a datos de dominio.
+  * data from sensors or inputs,
+  * and results generated by backend algorithms.
 
-Para visualización en vivo, el equipo puede implementar polling u otro mecanismo equivalente desde/hacia el backend, siempre que el frontend no consuma datos directamente del dispositivo.
+Live updates must occur **without requiring a manual browser refresh**.
 
-**Criterio de aceptación:** revisión de código, configuración y tráfico observable muestran que el navegador consume datos únicamente desde el backend.
-
----
-
-## 2.2 Backend único
-
-El equipo debe seleccionar **un único framework de backend** para la entrega evaluada. No debe ser necesario ejecutar múltiples backends alternativos para que el sistema funcione en la demo.
-
-**Criterio de aceptación:** la documentación de ejecución y la demo utilizan un solo backend activo como parte del producto evaluado.
+**Acceptance criterion:** during the demo, historical data can be queried and new updates can be observed in the interface without manually reloading the page.
 
 ---
 
-## 2.3 Contrato de API previo al consumo
+# 2. Architecture and Technical Requirements
 
-Los endpoints utilizados por firmware y frontend deben estar definidos en un **contrato versionado** dentro del repositorio antes de ser consumidos por esos clientes.
+## 2.1 Integration Between Components
 
-Se admite OpenAPI u otro formato REST equivalente, siempre que documente al menos:
+Communication between components must follow these rules:
 
-* ruta,
-* método HTTP,
-* payload esperado,
-* respuesta esperada,
-* códigos de error relevantes.
+* **ESP32 <-> backend:** via documented HTTP REST.
+* **Frontend <-> backend:** via documented HTTP REST.
+* The **frontend cannot communicate directly with the ESP32** to access domain data.
 
-### Definición operativa de “antes de codear” en este contexto
+For live visualization, the team may implement polling or another equivalent mechanism to/from the backend, as long as the frontend does not consume data directly from the device.
 
-Se considera que un contrato fue publicado **antes del consumo** si el repositorio muestra que la definición del endpoint fue incorporada antes del primer commit o PR que:
-
-* invoque dicho endpoint desde frontend o firmware,
-* dependa de sus campos,
-* o implemente lógica cliente acoplada a ese contrato.
-
-No se consideran “consumo” de contrato los siguientes casos:
-
-* scaffolding inicial,
-* mocks temporales aislados,
-* pruebas exploratorias sin integración al flujo principal,
-* estructura vacía de proyecto.
-
-**Criterio de aceptación:** en el historial Git, la definición del contrato aparece antes del primer uso integrado de cada endpoint por parte de frontend o firmware. 
+**Acceptance criterion:** code review, configuration, and observable traffic show that the browser consumes data only from the backend.
 
 ---
 
-## 2.4 Algoritmos del backend
+## 2.2 Single Backend
 
-El backend debe implementar **al menos tres algoritmos distintos** aplicados sobre datos ingeridos, persistidos o consultados desde PostgreSQL.
+The team must select **a single backend framework** for the evaluated delivery. It should not be necessary to run multiple alternative backends for the system to work in the demo.
 
-### Definición operativa de “algoritmo distinto”
-
-Para esta consigna, dos algoritmos se consideran distintos si cumplen simultáneamente estas condiciones:
-
-1. realizan una **transformación, análisis o decisión diferente** sobre los datos,
-2. producen una **salida semánticamente diferente** o persiguen un propósito distinto,
-3. están implementados como unidades separables del código,
-4. pueden identificarse y explicarse por separado en documentación o API.
-
-Ejemplos válidos:
-
-* media móvil,
-* mediana móvil,
-* Kalman,
-* umbral con histéresis,
-* detección de anomalías,
-* agregación por ventana temporal,
-* clasificación de estados.
-
-Ejemplos que **no** cuentan como algoritmos distintos por sí solos:
-
-* cambiar una constante de umbral,
-* la misma lógica con distinto nombre,
-* la misma operación aplicada a tres sensores distintos,
-* tres variantes triviales sin diferencia funcional clara.
-
-Cada algoritmo debe estar vinculado al flujo real del sistema, leyendo datos persistidos, procesándolos o generando resultados que el sistema exponga o utilice.
-
-**Criterio de aceptación:** en el repositorio y/o la API se identifican tres algoritmos con nombre, propósito, entradas y salidas diferenciables, y con vínculo explícito al uso de PostgreSQL. 
+**Acceptance criterion:** execution documentation and the demo use a single active backend as part of the evaluated product.
 
 ---
 
-## 2.5 Validación y calidad mínima del backend
+## 2.3 API Contract Before Consumption
 
-El backend debe validar payloads de ingesta y responder con códigos HTTP coherentes.
+Endpoints used by firmware and frontend must be defined in a **versioned contract** within the repository before being consumed by those clients.
 
-En caso de payload inválido, el backend debe:
+OpenAPI or another equivalent REST format is accepted, as long as it documents at least:
 
-* responder con código **4xx**,
-* y **no persistir** registros inválidos o corruptos.
+* path,
+* HTTP method,
+* expected payload,
+* expected response,
+* relevant error codes.
 
-**Criterio de aceptación:** una prueba manual con payload malformado genera respuesta 4xx y no deja basura persistida.
+### Operational Definition of "Before Coding" in This Context
+
+A contract is considered published **before consumption** if the repository shows that the endpoint definition was incorporated before the first commit or PR that:
+
+* invokes that endpoint from frontend or firmware,
+* depends on its fields,
+* or implements client logic coupled to that contract.
+
+The following cases are not considered contract "consumption":
+
+* initial scaffolding,
+* isolated temporary mocks,
+* exploratory tests not integrated into the main flow,
+* empty project structure.
+
+**Acceptance criterion:** in the Git history, the contract definition appears before the first integrated use of each endpoint by frontend or firmware.
 
 ---
 
-# 3. Requisitos de diseño y modelado
+## 2.4 Backend Algorithms
 
-## 3.1 UML obligatorio previo al desarrollo sustantivo
+The backend must implement **at least three distinct algorithms** applied to data ingested, persisted, or queried from PostgreSQL.
 
-Antes de implementar funcionalidad sustantiva del sistema, el equipo debe versionar en `docs/`:
+### Operational Definition of "Distinct Algorithm"
 
-1. un **diagrama de componentes**,
-2. un **diagrama de clases** del backend,
-3. uno o más **diagramas de secuencia** de flujos relevantes.
+For this brief, two algorithms are considered distinct if they simultaneously meet these conditions:
 
-También debe incluirse la **fuente editable** del diagrama y, si la herramienta lo permite, una versión exportada legible.
+1. they perform a **different transformation, analysis, or decision** on the data,
+2. they produce a **semantically different output** or pursue a different purpose,
+3. they are implemented as separable units of code,
+4. they can be identified and explained separately in documentation or API.
 
-### Definición operativa de “antes de codear”
+Valid examples:
 
-A efectos de esta consigna, se considera **desarrollo sustantivo** cualquiera de los siguientes:
+* moving average,
+* moving median,
+* Kalman filter,
+* threshold with hysteresis,
+* anomaly detection,
+* temporal window aggregation,
+* state classification.
 
-* implementación de lógica de dominio,
-* creación de endpoints reales,
-* persistencia real en base de datos,
-* integración ESP32 ↔ backend,
-* integración frontend ↔ backend,
-* implementación de algoritmos del sistema,
-* implementación de flujos de negocio o de UI ligados al producto final.
+Examples that do **not** count as distinct algorithms on their own:
 
-No se considera desarrollo sustantivo:
+* changing a threshold constant,
+* the same logic with a different name,
+* the same operation applied to three different sensors,
+* three trivial variants without a clear functional difference.
 
-* creación del repositorio,
-* configuración inicial del proyecto,
+Each algorithm must be linked to the real system flow, reading persisted data, processing it, or generating results that the system exposes or uses.
+
+**Acceptance criterion:** in the repository and/or API, three algorithms can be identified with name, purpose, differentiable inputs and outputs, and an explicit link to PostgreSQL usage.
+
+---
+
+## 2.5 Backend Validation and Minimum Quality
+
+The backend must validate ingestion payloads and respond with consistent HTTP codes.
+
+In case of an invalid payload, the backend must:
+
+* respond with a **4xx** code,
+* and **not persist** invalid or corrupt records.
+
+**Acceptance criterion:** a manual test with a malformed payload generates a 4xx response and does not leave garbage persisted.
+
+---
+
+# 3. Design and Modeling Requirements
+
+## 3.1 Mandatory UML Before Substantive Development
+
+Before implementing substantive system functionality, the team must version in `docs/`:
+
+1. a **component diagram**,
+2. a **class diagram** of the backend,
+3. one or more **sequence diagrams** of relevant flows.
+
+The **editable source** of the diagram must also be included and, if the tool allows it, an exported readable version.
+
+### Operational Definition of "Before Coding"
+
+For the purposes of this brief, **substantive development** is considered to be any of the following:
+
+* implementation of domain logic,
+* creation of real endpoints,
+* real database persistence,
+* ESP32 <-> backend integration,
+* frontend <-> backend integration,
+* implementation of system algorithms,
+* implementation of business or UI flows tied to the final product.
+
+The following are not considered substantive development:
+
+* repository creation,
+* initial project configuration,
 * scaffolding,
-* instalación de dependencias,
-* configuración de linters, hooks o CI,
-* archivos placeholder,
-* pruebas de concepto descartables no integradas al flujo principal.
+* dependency installation,
+* linter, hook, or CI configuration,
+* placeholder files,
+* disposable proof-of-concept tests not integrated into the main flow.
 
-**Criterio de aceptación:** los diagramas deben estar mergeados en el repositorio antes del primer PR o conjunto de commits que introduzca desarrollo sustantivo según esta definición. 
-
----
-
-## 3.2 Coherencia entre diseño y sistema final
-
-El diseño UML no tiene que coincidir línea por línea con el código final, pero sí debe reflejar razonablemente la arquitectura y los flujos centrales del sistema entregado.
-
-**Criterio de aceptación:** el diagrama de componentes coincide con los componentes reales; el diagrama de clases representa el backend efectivamente implementado; y al menos un diagrama de secuencia cubre un flujo end-to-end real del sistema.
+**Acceptance criterion:** diagrams must be merged in the repository before the first PR or set of commits that introduces substantive development according to this definition.
 
 ---
 
-## 3.3 Patrones de diseño
+## 3.2 Consistency Between Design and Final System
 
-El sistema debe evidenciar:
+The UML design does not have to match the final code line by line, but it must reasonably reflect the architecture and central flows of the delivered system.
 
-* al menos **dos implementaciones concretas** del patrón **Observer**,
-* al menos una implementación del patrón **Strategy**,
-* y al menos **un tercer patrón GoF**, justificado por escrito en `docs/`.
+**Acceptance criterion:** the component diagram matches the real components; the class diagram represents the effectively implemented backend; and at least one sequence diagram covers a real end-to-end system flow.
+
+---
+
+## 3.3 Design Patterns
+
+The system must demonstrate:
+
+* at least **two concrete implementations** of the **Observer** pattern,
+* at least one implementation of the **Strategy** pattern,
+* and at least **one third GoF pattern**, justified in writing in `docs/`.
 
 ### Observer
 
-Las dos implementaciones concretas de Observer deben corresponder a dos flujos o estructuras distinguibles del sistema.
-No alcanza con duplicar nombres o clases vacías.
+The two concrete Observer implementations must correspond to two distinguishable system flows or structures.
+Simply duplicating names or empty classes is not sufficient.
 
 ### Strategy
 
-Se considera válida una Strategy si existen al menos **dos estrategias intercambiables reales** usadas por el sistema para resolver un mismo problema.
+A Strategy is considered valid if there are at least **two real interchangeable strategies** used by the system to solve the same problem.
 
-### Tercer patrón GoF
+### Third GoF Pattern
 
-Debe identificarse explícitamente:
+It must be explicitly identified:
 
-* nombre del patrón,
-* clases o módulos que cumplen cada rol,
-* justificación de por qué se usó.
+* pattern name,
+* classes or modules fulfilling each role,
+* justification of why it was used.
 
-**Criterio de aceptación:** el código y la documentación permiten identificar con claridad las implementaciones y roles de los tres patrones. 
+**Acceptance criterion:** the code and documentation allow clear identification of the implementations and roles of the three patterns.
 
 ---
 
-# 4. Requisitos de proceso
+# 4. Process Requirements
 
 ## 4.1 Jira
 
-El equipo debe utilizar **Jira web** con un proyecto del equipo para esta materia, salvo indicación distinta del cuerpo docente.
+The team must use **Jira web** with a team project for this course, unless otherwise indicated by the teaching staff.
 
-Debe existir:
+There must be:
 
-* proyecto identificable,
-* backlog con historias de usuario,
-* tareas asociadas,
-* seguimiento del trabajo.
+* identifiable project,
+* backlog with user stories,
+* associated tasks,
+* work tracking.
 
-En el repositorio debe figurar:
+The repository must include:
 
-* nombre del proyecto,
+* project name,
 * URL,
-* prefijo de claves.
+* key prefix.
 
-**Criterio de aceptación:** el proyecto existe, tiene historias y tareas visibles, y el repositorio lo referencia sin ambigüedad.
-
----
-
-## 4.2 Pull requests y revisiones
-
-Todo trabajo ligado a historias de usuario debe integrarse mediante **pull request** a una rama de integración protegida.
-
-Cada PR debe:
-
-* referenciar la clave Jira correspondiente,
-* tener al menos **dos aprobaciones** de personas distintas del equipo antes del merge.
-
-Si el equipo tiene solo **dos integrantes**, el mínimo exigido es **una aprobación** de la otra persona.
-
-**Criterio de aceptación:** la configuración del repositorio y el historial de PRs muestran el cumplimiento de esta regla.
+**Acceptance criterion:** the project exists, has visible stories and tasks, and the repository references it unambiguously.
 
 ---
 
-## 4.3 Aporte equilibrado
+## 4.2 Pull Requests and Reviews
 
-La participación del equipo debe ser auditable y distribuida.
+All work tied to user stories must be integrated via **pull request** to a protected integration branch.
 
-Se considerará que hay aporte equilibrado si, salvo justificación documentada, **cada integrante** cumple al menos dos de estas condiciones a lo largo del cuatrimestre:
+Each PR must:
 
-* participa como autor de PRs integradas,
-* realiza revisiones aprobatorias,
-* aporta commits sustantivos,
-* tiene tareas asignadas y cerradas en Jira,
-* aparece vinculado a componentes o historias relevantes del sistema.
+* reference the corresponding Jira key,
+* have at least **two approvals** from different team members before merging.
 
-No se evaluará el equilibrio únicamente por cantidad de commits.
+If the team has only **two members**, the minimum required is **one approval** from the other person.
 
-**Criterio de aceptación:** la evidencia conjunta de Git, PRs y Jira permite verificar participación efectiva de todos los integrantes.
+**Acceptance criterion:** repository configuration and PR history show compliance with this rule.
 
 ---
 
-## 4.4 Workflow Git documentado
+## 4.3 Balanced Contribution
 
-El equipo debe definir, documentar y cumplir un workflow de ramas en `docs/`.
+Team participation must be auditable and distributed.
 
-La documentación debe indicar al menos:
+Balanced contribution will be considered if, unless documented justification exists, **each member** meets at least two of these conditions throughout the term:
 
-* ramas de trabajo,
-* rama de integración,
-* forma de integración por PR,
-* criterio de merge,
-* relación entre ramas y Jira.
+* participates as author of integrated PRs,
+* performs approving reviews,
+* contributes substantive commits,
+* has assigned and closed tasks in Jira,
+* appears linked to relevant system components or stories.
 
-**Criterio de aceptación:** existe el documento y el uso real del repositorio coincide con lo documentado.
+Balance will not be evaluated solely by commit count.
 
----
-
-## 4.5 Convención de commits
-
-El equipo debe usar una única convención de mensajes de commit y documentarla en `docs/`.
-
-La documentación debe incluir:
-
-* regla general,
-* al menos tres ejemplos válidos,
-* inclusión de clave Jira en cada ejemplo.
-
-**Criterio de aceptación:** la convención está documentada y los commits integrados recientes la respetan de forma consistente.
+**Acceptance criterion:** the combined evidence from Git, PRs, and Jira allows verification of effective participation from all members.
 
 ---
 
-# 5. Requisitos de calidad y automatización
+## 4.4 Documented Git Workflow
 
-## 5.1 Idioma
+The team must define, document, and follow a branch workflow in `docs/`.
 
-Deben estar en **inglés**:
+The documentation must indicate at least:
 
-* código fuente,
-* comentarios,
-* nombres de APIs internas,
-* identificadores relevantes.
+* work branches,
+* integration branch,
+* PR integration method,
+* merge criteria,
+* relationship between branches and Jira.
 
-Pueden estar en español:
+**Acceptance criterion:** the document exists and the actual repository usage matches what is documented.
 
-* documentación del equipo,
+---
+
+## 4.5 Commit Convention
+
+The team must use a single commit message convention and document it in `docs/`.
+
+The documentation must include:
+
+* general rule,
+* at least three valid examples,
+* inclusion of Jira key in each example.
+
+**Acceptance criterion:** the convention is documented and recent integrated commits consistently follow it.
+
+---
+
+# 5. Quality and Automation Requirements
+
+## 5.1 Language
+
+The following must be in **English**:
+
+* source code,
+* comments,
+* internal API names,
+* relevant identifiers.
+
+The following may be in Spanish:
+
+* team documentation,
 * Jira,
-* informes,
-* textos externos no técnicos si el producto lo requiere.
+* reports,
+* non-technical external texts if the product requires it.
 
-**Criterio de aceptación:** en la rama integrada no aparecen comentarios ni nombres técnicos de API en español, salvo strings visibles al usuario final cuando corresponda.
+**Acceptance criterion:** in the integration branch, no comments or technical API names appear in Spanish, except user-visible strings when appropriate.
 
 ---
 
 ## 5.2 Testing
 
-Deben existir **tests unitarios** para:
+**Unit tests** must exist for:
 
 * backend,
 * frontend,
 * firmware.
 
-Los tests deben:
+Tests must:
 
-* estar versionados en el repo,
-* ser ejecutables localmente,
-* coincidir con los comandos usados en CI,
-* cubrir lógica relevante del sistema.
+* be versioned in the repo,
+* be executable locally,
+* match the commands used in CI,
+* cover relevant system logic.
 
-Se valoran tests de integración en backend, pero no son obligatorios.
+Integration tests in the backend are valued but not mandatory.
 
-**Criterio de aceptación:** existen tests visibles en los tres componentes y sus comandos están documentados y alineados con CI.
+**Acceptance criterion:** visible tests exist in all three components and their commands are documented and aligned with CI.
 
 ---
 
 ## 5.3 GitHub Actions
 
-La automatización de CI debe implementarse exclusivamente con **GitHub Actions** en `.github/workflows/`.
+CI automation must be implemented exclusively with **GitHub Actions** in `.github/workflows/`.
 
-En PRs hacia la rama de integración deben ejecutarse automáticamente como mínimo:
+On PRs to the integration branch, the following must run automatically at minimum:
 
-* **backend:** build + tests unitarios,
-* **frontend:** build + tests unitarios,
+* **backend:** build + unit tests,
+* **frontend:** build + unit tests,
 * **firmware:** `pio test`.
 
-**Criterio de aceptación:** un PR hacia integración muestra checks automáticos exitosos o fallidos para esos tres ámbitos.
+**Acceptance criterion:** a PR to integration shows successful or failed automatic checks for those three scopes.
 
 ---
 
-## 5.4 Hooks Git
+## 5.4 Git Hooks
 
-El repositorio debe permitir instalar y usar:
+The repository must allow installing and using:
 
-* `pre-commit`, que ejecute al menos el linter,
-* `pre-push`, que ejecute al menos los tests exigidos o una verificación equivalente documentada.
+* `pre-commit`, which runs at least the linter,
+* `pre-push`, which runs at least the required tests or an equivalent documented verification.
 
-Los hooks deben estar versionados o ser instalables desde el propio repositorio.
+Hooks must be versioned or installable from the repository itself.
 
-**Criterio de aceptación:** la documentación permite activar hooks en un clone limpio y el equipo puede demostrar su funcionamiento.
+**Acceptance criterion:** documentation allows activating hooks on a clean clone and the team can demonstrate their functioning.
 
 ---
 
 ## 5.5 Linter
 
-Debe existir al menos un linter configurado y versionado para cada componente activo del sistema entregado:
+At least one linter must be configured and versioned for each active component of the delivered system:
 
 * backend,
 * frontend,
 * firmware.
 
-El linter debe ejecutarse en `pre-commit`.
+The linter must run in `pre-commit`.
 
-**Criterio de aceptación:** hay archivos de configuración del linter en el repo y el hook `pre-commit` lo invoca.
-
----
-
-# 6. Evidencia mínima exigible para evaluación
-
-Para considerar cumplida la entrega, debe existir evidencia observable de todos los puntos siguientes:
-
-1. demo funcional **ESP32 → backend → PostgreSQL → frontend**,
-2. tres modalidades de entrada distintas desde ESP32,
-3. persistencia histórica en PostgreSQL,
-4. frontend con histórico y actualización en vivo sin refresh manual,
-5. un único backend activo,
-6. contrato de API versionado antes del consumo,
-7. tres algoritmos distintos correctamente identificables,
-8. diagramas UML obligatorios versionados antes del desarrollo sustantivo,
-9. dos Observers, una Strategy y un tercer patrón GoF identificables,
-10. proyecto Jira con historias y tareas,
-11. PRs con aprobaciones mínimas exigidas,
-12. workflow Git documentado,
-13. convención de commits documentada,
-14. código y comentarios técnicos en inglés,
-15. tests unitarios en backend, frontend y firmware,
-16. GitHub Actions funcionando sobre PRs,
-17. hooks instalables,
-18. linter configurado y ejecutado en pre-commit.
+**Acceptance criterion:** linter configuration files exist in the repo and the `pre-commit` hook invokes it.
 
 ---
 
-# 7. Observaciones finales
+# 6. Minimum Required Evidence for Evaluation
 
-Los RF y RNF del producto siguen siendo definidos por el equipo, pero no pueden contradecir ninguna de las restricciones de esta consigna.
+To consider the delivery complete, observable evidence of all the following points must exist:
 
-Ante dudas de interpretación, prevalecerá siempre el criterio de:
-
-* **evidencia observable en repositorio**,
-* **trazabilidad en Git/Jira**,
-* y **demostrabilidad en la evaluación**.
-
-
-### Nice to have — Docker Compose en Actions (entorno tipo producción)
-
-Cuando el proyecto esté **suficientemente avanzado o cerrado**, el equipo **puede** agregar un job opcional en GitHub Actions que:
-
-- ejecute **`docker compose build`** para construir las **imágenes** desde los `Dockerfile` / manifiestos del repo,
-- levante el stack con **`docker compose up`** (o variante adecuada para CI: perfil mínimo, `depends_on` + healthchecks, variables de entorno de “prod simulada”),
-
-como **smoke** del despliegue integrado (backend, base, frontend en contenedores, según lo que el equipo haya dockerizado), acercándose a un **entorno tipo producción**.
-
-Debe quedar **documentado** en `docs/` o **ABOUT** cómo reproducir el mismo flujo en la máquina local. **No** es requisito de aprobación del curso salvo que el docente lo indique aparte.
+1. functional demo **ESP32 -> backend -> PostgreSQL -> frontend**,
+2. three distinct input modalities from ESP32,
+3. historical persistence in PostgreSQL,
+4. frontend with historical data and live updates without manual refresh,
+5. a single active backend,
+6. versioned API contract before consumption,
+7. three distinct correctly identifiable algorithms,
+8. mandatory UML diagrams versioned before substantive development,
+9. two Observers, one Strategy, and one third GoF pattern identifiable,
+10. Jira project with stories and tasks,
+11. PRs with minimum required approvals,
+12. documented Git workflow,
+13. documented commit convention,
+14. code and technical comments in English,
+15. unit tests in backend, frontend, and firmware,
+16. GitHub Actions running on PRs,
+17. installable hooks,
+18. linter configured and executed in pre-commit.
 
 ---
 
-Para instalación y stack del repositorio base, ver [ABOUT.md](../ABOUT.md).
+# 7. Final Notes
+
+The product RFs and RNFs are still defined by the team, but they cannot contradict any of the constraints in this brief.
+
+In case of interpretation doubts, the following criteria will always prevail:
+
+* **observable evidence in the repository**,
+* **traceability in Git/Jira**,
+* and **demonstrability during evaluation**.
+
+
+### Nice to have — Docker Compose in Actions (production-like environment)
+
+When the project is **sufficiently advanced or closed**, the team **may** add an optional job in GitHub Actions that:
+
+- runs **`docker compose build`** to build the **images** from the `Dockerfile` / manifests in the repo,
+- brings up the stack with **`docker compose up`** (or an appropriate variant for CI: minimum profile, `depends_on` + healthchecks, "simulated prod" environment variables),
+
+as a **smoke test** of the integrated deployment (backend, database, frontend in containers, depending on what the team has dockerized), approaching a **production-like environment**.
+
+It must be **documented** in `docs/` or **ABOUT** how to reproduce the same flow on a local machine. It is **not** a course approval requirement unless the instructor indicates otherwise separately.
+
+---
+
+For installation and base repository stack, see [ABOUT.md](../ABOUT.md).

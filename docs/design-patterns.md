@@ -1,224 +1,224 @@
-# Patrones de Diseño — Sistema de Alarma para Hogar
+# Design Patterns — Home Alarm System
 
-Este documento describe los patrones de diseño GoF utilizados en la arquitectura del sistema, su propósito y dónde se aplican en el código.
+This document describes the GoF design patterns used in the system architecture, their purpose, and where they are applied in the code.
 
 ---
 
-## 1. Patrón State
+## 1. State Pattern
 
-**Tipo:** Comportamiento
+**Type:** Behavioral
 
-**Propósito:** Permitir que el sistema de alarma cambie su comportamiento cuando cambia su estado interno. La alarma parece cambiar de clase.
+**Purpose:** Allow the alarm system to change its behavior when its internal state changes. The alarm appears to change its class.
 
-### Dónde se aplica
+### Where it is applied
 
-**Componente:** `backend/services/alarm_state_manager.py`
+**Component:** `backend/services/alarm_state_manager.py`
 
-**Contexto:** El sistema de alarma tiene 4 estados distintos con comportamientos diferentes:
-- `DISARMED` — Sistema desactivado, los eventos se registran pero no disparan acciones
-- `ARMING_WAIT` — Sistema armando, esperando que el usuario se retire
-- `ARMED_COUNTDOWN` — Sistema armado, cuenta regresiva antes de activación completa
-- `ALARM` — Alarma disparada
+**Context:** The alarm system has 4 distinct states with different behaviors:
+- `DISARMED` — System deactivated, events are logged but do not trigger actions
+- `ARMING_WAIT` — System arming, waiting for the user to leave
+- `ARMED_COUNTDOWN` — System armed, countdown before full activation
+- `ALARM` — Alarm triggered
 
-**Comportamiento por estado ante MOTION_DETECTED:**
-- `DisarmedState` — Ignora el evento (podés moverte libremente en tu casa)
-- `ArmingWaitState` — Ignora el evento (todavía estás saliendo)
-- `ArmedCountdownState` — Transiciona a `ALARM` (detección de intruso)
-- `AlarmTriggeredState` — Ignora el evento (ya está en alarma)
+**Behavior per state on MOTION_DETECTED:**
+- `DisarmedState` — Ignores the event (you can move freely in your home)
+- `ArmingWaitState` — Ignores the event (you are still leaving)
+- `ArmedCountdownState` — Transitions to `ALARM` (intruder detection)
+- `AlarmTriggeredState` — Ignores the event (already in alarm)
 
-**Comportamiento por estado ante ARMING_TIMEOUT:**
-- `DisarmedState` — Ignora el evento (no aplica en este estado)
-- `ArmingWaitState` — Transiciona a `DISARMED` (el usuario no salió en el tiempo de gracia)
-- `ArmedCountdownState` — Ignora el evento (no aplica en este estado)
-- `AlarmTriggeredState` — Ignora el evento (no aplica en este estado)
+**Behavior per state on ARMING_TIMEOUT:**
+- `DisarmedState` — Ignores the event (not applicable in this state)
+- `ArmingWaitState` — Transitions to `DISARMED` (the user did not leave within the grace period)
+- `ArmedCountdownState` — Ignores the event (not applicable in this state)
+- `AlarmTriggeredState` — Ignores the event (not applicable in this state)
 
-**Comportamiento por estado ante ENTRY_TIMEOUT:**
-- `DisarmedState` — Ignora el evento (no aplica en este estado)
-- `ArmingWaitState` — Ignora el evento (no aplica en este estado)
-- `ArmedCountdownState` — Transiciona a `ALARM` (el usuario no ingresó el PIN en el countdown)
-- `AlarmTriggeredState` — Ignora el evento (ya está en alarma)
+**Behavior per state on ENTRY_TIMEOUT:**
+- `DisarmedState` — Ignores the event (not applicable in this state)
+- `ArmingWaitState` — Ignores the event (not applicable in this state)
+- `ArmedCountdownState` — Transitions to `ALARM` (the user did not enter the PIN within the countdown)
+- `AlarmTriggeredState` — Ignores the event (already in alarm)
 
-### Estructura de implementación
+### Implementation Structure
 
 ```
-AlarmStateManager (Contexto)
+AlarmStateManager (Context)
   ├─ state: AlarmState
-  ├─ transition_to(nuevo_estado)
-  └─ handle_event(evento)
+  ├─ transition_to(new_state)
+  └─ handle_event(event)
 
-AlarmState (Interfaz de Estado)
-  ├─ handle_door_state_changed(contexto, evento)
-  ├─ handle_arm_button(contexto, evento)
-  ├─ handle_panic_button(contexto, evento)
-  ├─ handle_pin_attempt(contexto, evento)
-  ├─ handle_motion_detected(contexto, evento)
-  ├─ handle_arming_timeout(contexto, evento)
-  └─ handle_entry_timeout(contexto, evento)
+AlarmState (State Interface)
+  ├─ handle_door_state_changed(context, event)
+  ├─ handle_arm_button(context, event)
+  ├─ handle_panic_button(context, event)
+  ├─ handle_pin_attempt(context, event)
+  ├─ handle_motion_detected(context, event)
+  ├─ handle_arming_timeout(context, event)
+  └─ handle_entry_timeout(context, event)
 
-Estados Concretos:
+Concrete States:
   ├─ DisarmedState
   ├─ ArmingWaitState
   ├─ ArmedCountdownState
   └─ AlarmTriggeredState
 ```
 
-### Por qué este patrón
+### Why this pattern
 
-- Cada estado encapsula su propia lógica de transiciones (ej: `ArmedCountdownState` transiciona a `AlarmTriggeredState` al abrir la puerta, pero `DisarmedState` lo ignora)
-- Agregar nuevos estados (ej: `MAINTENANCE_MODE`) no requiere modificar las clases de estado existentes
-- Elimina grandes bloques condicionales (`if estado == X and evento == Y`)
-- Las transiciones de estado son explícitas y testeables
+- Each state encapsulates its own transition logic (e.g., `ArmedCountdownState` transitions to `AlarmTriggeredState` when the door opens, but `DisarmedState` ignores it)
+- Adding new states (e.g., `MAINTENANCE_MODE`) does not require modifying existing state classes
+- Eliminates large conditional blocks (`if state == X and event == Y`)
+- State transitions are explicit and testable
 
 ---
 
-## 2. Patrón Strategy
+## 2. Strategy Pattern
 
-**Tipo:** Comportamiento
+**Type:** Behavioral
 
-**Propósito:** Definir una familia de algoritmos de analytics, encapsular cada uno y hacerlos intercambiables. El cliente puede elegir qué algoritmo usar independientemente del servicio que los orquesta.
+**Purpose:** Define a family of analytics algorithms, encapsulate each one, and make them interchangeable. The client can choose which algorithm to use independently of the service that orchestrates them.
 
-### Dónde se aplica
+### Where it is applied
 
-**Componente:** `backend/services/analytics_service.py`
+**Component:** `backend/services/analytics_service.py`
 
-**Contexto:** El sistema necesita calcular métricas derivadas de eventos persistidos usando diferentes algoritmos:
-- **Windowed Counts** (Conteos por ventana) — Cuenta eventos por tipo en una ventana de 10 minutos (incluye `motionDetections`)
-- **PIN Fail Suspicious** (PIN fallido sospechoso) — Detección basada en histéresis (se activa con 3 fallos, se desactiva con 1 éxito)
-- **Door Open Anomaly** (Anomalía de puerta abierta) — Detección basada en umbral (se activa si hay >6 aperturas en 10 min)
+**Context:** The system needs to compute metrics derived from persisted events using different algorithms:
+- **Windowed Counts** — Counts events by type within a 10-minute window (includes `motionDetections`)
+- **PIN Fail Suspicious** — Hysteresis-based detection (activates with 3 failures, deactivates with 1 success)
+- **Door Open Anomaly** — Threshold-based detection (activates if there are >6 openings in 10 min)
 
-### Estructura de implementación
+### Implementation Structure
 
 ```
-AnalyticsService (Contexto)
+AnalyticsService (Context)
   ├─ algorithms: list[AnalyticsAlgorithm]
   └─ calculate_metrics(events) -> dict
 
-AnalyticsAlgorithm (Interfaz de Estrategia)
+AnalyticsAlgorithm (Strategy Interface)
   └─ process(events: list[Event]) -> dict
 
-Estrategias Concretas:
+Concrete Strategies:
   ├─ WindowedCountsAlgorithm
   ├─ PinFailHysteresisAlgorithm
   └─ DoorOpenAnomalyAlgorithm
 ```
 
-### Por qué este patrón
+### Why this pattern
 
-- Cada algoritmo es testeable y modificable de forma independiente
-- Agregar nuevos analytics (ej: `MovementPatternDetector`) solo requiere crear una nueva clase de estrategia
-- El servicio no necesita conocer los detalles de cada algoritmo
-- Los algoritmos pueden configurarse en tiempo de ejecución (ej: habilitar/deshabilitar analytics específicos)
+- Each algorithm is independently testable and modifiable
+- Adding new analytics (e.g., `MovementPatternDetector`) only requires creating a new strategy class
+- The service does not need to know the details of each algorithm
+- Algorithms can be configured at runtime (e.g., enable/disable specific analytics)
 
 ---
 
-## 3. Patrón Observer — Implementación #1: Cambios de Estado de Alarma
+## 3. Observer Pattern — Implementation #1: Alarm State Changes
 
-**Tipo:** Comportamiento
+**Type:** Behavioral
 
-**Propósito:** Definir una dependencia uno-a-muchos entre el administrador de estado de la alarma y sus observadores, de modo que cuando el estado cambie, todos los componentes dependientes sean notificados y actualizados automáticamente.
+**Purpose:** Define a one-to-many dependency between the alarm state manager and its observers, so that when the state changes, all dependent components are notified and updated automatically.
 
-### Dónde se aplica
+### Where it is applied
 
-**Componente:** `backend/services/alarm_state_manager.py` (Sujeto) + `backend/services/alarm_state_observer.py` (Observadores)
+**Component:** `backend/services/alarm_state_manager.py` (Subject) + `backend/services/alarm_state_observer.py` (Observers)
 
-**Contexto:** Cuando la alarma transiciona entre estados (ej: `DISARMED` → `ARMING_WAIT`), múltiples componentes necesitan reaccionar:
-- **Caché de estado en vivo** — Actualizar el estado cacheado para respuestas rápidas de `/api/v1/alarm/state`
-- **Logger de eventos** — Registrar transiciones de estado para auditoría/debugging
-- **Futuro: Broadcaster WebSocket** — Enviar cambios de estado a clientes frontend conectados
+**Context:** When the alarm transitions between states (e.g., `DISARMED` -> `ARMING_WAIT`), multiple components need to react:
+- **Live state cache** — Update the cached state for fast responses to `/api/v1/alarm/state`
+- **Event logger** — Log state transitions for auditing/debugging
+- **Future: WebSocket Broadcaster** — Send state changes to connected frontend clients
 
-### Estructura de implementación
+### Implementation Structure
 
 ```
-AlarmStateManager (Sujeto)
+AlarmStateManager (Subject)
   ├─ observers: list[AlarmStateObserver]
-  ├─ attach(observador)
-  ├─ detach(observador)
-  └─ notify_observers(estado_anterior, estado_nuevo)
+  ├─ attach(observer)
+  ├─ detach(observer)
+  └─ notify_observers(previous_state, new_state)
 
-AlarmStateObserver (Interfaz de Observador)
-  └─ on_alarm_state_changed(estado_anterior, estado_nuevo, timestamp)
+AlarmStateObserver (Observer Interface)
+  └─ on_alarm_state_changed(previous_state, new_state, timestamp)
 
-Observadores Concretos:
+Concrete Observers:
   ├─ LiveStateCacheObserver
   ├─ StateTransitionLoggerObserver
-  └─ (futuro) WebSocketBroadcasterObserver
+  └─ (future) WebSocketBroadcasterObserver
 ```
 
-### Por qué este patrón
+### Why this pattern
 
-- El administrador de estado no necesita saber qué componentes están interesados en los cambios
-- Se pueden agregar nuevos observadores sin modificar el sujeto (Principio Abierto/Cerrado)
-- Desacopla la lógica de transición de estado de los efectos secundarios (caché, logging, broadcasting)
-- Los observadores pueden habilitarse/deshabilitarse en tiempo de ejecución
+- The state manager does not need to know which components are interested in changes
+- New observers can be added without modifying the subject (Open/Closed Principle)
+- Decouples state transition logic from side effects (cache, logging, broadcasting)
+- Observers can be enabled/disabled at runtime
 
 ---
 
-## 4. Patrón Observer — Implementación #2: Ingesta de Nuevos Eventos
+## 4. Observer Pattern — Implementation #2: New Event Ingestion
 
-**Tipo:** Comportamiento
+**Type:** Behavioral
 
-**Propósito:** Notificar a los componentes interesados cuando se ingieren nuevos eventos desde la ESP32, habilitando procesamiento en tiempo real y actualizaciones de analytics.
+**Purpose:** Notify interested components when new events are ingested from the ESP32, enabling real-time processing and analytics updates.
 
-### Dónde se aplica
+### Where it is applied
 
-**Componente:** `backend/services/event_service.py` (Sujeto) + `backend/services/event_observer.py` (Observadores)
+**Component:** `backend/services/event_service.py` (Subject) + `backend/services/event_observer.py` (Observers)
 
-**Contexto:** Cuando llega un nuevo evento vía `POST /api/v1/events`, múltiples componentes necesitan reaccionar:
-- **Invalidador de caché de analytics** — Marcar analytics cacheados como obsoletos para que el próximo request recalcule
-- **Logger de stream de eventos** — Registrar el evento para debugging/monitoreo
-- **Futuro: Sistema de alertas en tiempo real** — Disparar alertas inmediatas para eventos críticos (ej: botón de pánico)
+**Context:** When a new event arrives via `POST /api/v1/events`, multiple components need to react:
+- **Analytics cache invalidator** — Mark cached analytics as stale so the next request recalculates
+- **Event stream logger** — Log the event for debugging/monitoring
+- **Future: Real-time alert system** — Trigger immediate alerts for critical events (e.g., panic button)
 
-### Estructura de implementación
+### Implementation Structure
 
 ```
-EventService (Sujeto)
+EventService (Subject)
   ├─ observers: list[EventObserver]
-  ├─ attach(observador)
-  ├─ detach(observador)
-  └─ notify_observers(evento)
+  ├─ attach(observer)
+  ├─ detach(observer)
+  └─ notify_observers(event)
 
-EventObserver (Interfaz de Observador)
-  └─ on_new_event(evento)
+EventObserver (Observer Interface)
+  └─ on_new_event(event)
 
-Observadores Concretos:
+Concrete Observers:
   ├─ AnalyticsCacheInvalidatorObserver
   ├─ EventStreamLoggerObserver
-  └─ (futuro) RealTimeAlertObserver
+  └─ (future) RealTimeAlertObserver
 ```
 
-### Por qué este patrón
+### Why this pattern
 
-- La lógica de ingesta de eventos está desacoplada del procesamiento posterior
-- Se pueden agregar nuevos manejadores de eventos sin modificar `EventService`
-- Los observadores pueden procesar eventos de forma asíncrona si es necesario
-- Eventos críticos (botón de pánico) pueden disparar acciones inmediatas sin esperar polling
+- Event ingestion logic is decoupled from subsequent processing
+- New event handlers can be added without modifying `EventService`
+- Observers can process events asynchronously if needed
+- Critical events (panic button) can trigger immediate actions without waiting for polling
 
 ---
 
-## Interacción entre Patrones
+## Pattern Interaction
 
-Los patrones trabajan juntos en el flujo de procesamiento de eventos:
+The patterns work together in the event processing flow:
 
 ```
-ESP32 → POST /events → EventService.ingest()
-                          ├─> Persistir en PostgreSQL
+ESP32 -> POST /events -> EventService.ingest()
+                          ├─> Persist in PostgreSQL
                           ├─> AlarmStateManager.handle_event()
-                          │     ├─> Patrón State: transicionar si corresponde
-                          │     └─> Observer #1: notificar observadores de cambio de estado
-                          └─> Observer #2: notificar observadores de ingesta de eventos
+                          │     ├─> State Pattern: transition if applicable
+                          │     └─> Observer #1: notify state change observers
+                          └─> Observer #2: notify event ingestion observers
 
-Frontend → GET /alarm/state → LiveStateCacheObserver (alimentado por Observer #1)
-Frontend → GET /analytics → AnalyticsService
-                              └─> Patrón Strategy: ejecutar todos los algoritmos de analytics
+Frontend -> GET /alarm/state -> LiveStateCacheObserver (fed by Observer #1)
+Frontend -> GET /analytics -> AnalyticsService
+                              └─> Strategy Pattern: execute all analytics algorithms
 ```
 
 ---
 
-## Tabla Resumen
+## Summary Table
 
-| Patrón | Componente | Propósito | Clases Clave |
-|--------|-----------|-----------|--------------|
-| **State** | AlarmStateManager | Gestionar transiciones de estado de la alarma (7 eventos: puerta, armar, pánico, PIN, movimiento, arming_timeout, entry_timeout) | AlarmState, DisarmedState, ArmingWaitState, ArmedCountdownState, AlarmTriggeredState |
-| **Strategy** | AnalyticsService | Encapsular algoritmos de analytics | AnalyticsAlgorithm, WindowedCountsAlgorithm, PinFailHysteresisAlgorithm, DoorOpenAnomalyAlgorithm |
-| **Observer #1** | AlarmStateManager | Notificar cambios de estado | AlarmStateObserver, LiveStateCacheObserver, StateTransitionLoggerObserver |
-| **Observer #2** | EventService | Notificar nuevos eventos | EventObserver, AnalyticsCacheInvalidatorObserver, EventStreamLoggerObserver |
+| Pattern | Component | Purpose | Key Classes |
+|---------|-----------|---------|-------------|
+| **State** | AlarmStateManager | Manage alarm state transitions (7 events: door, arm, panic, PIN, motion, arming_timeout, entry_timeout) | AlarmState, DisarmedState, ArmingWaitState, ArmedCountdownState, AlarmTriggeredState |
+| **Strategy** | AnalyticsService | Encapsulate analytics algorithms | AnalyticsAlgorithm, WindowedCountsAlgorithm, PinFailHysteresisAlgorithm, DoorOpenAnomalyAlgorithm |
+| **Observer #1** | AlarmStateManager | Notify state changes | AlarmStateObserver, LiveStateCacheObserver, StateTransitionLoggerObserver |
+| **Observer #2** | EventService | Notify new events | EventObserver, AnalyticsCacheInvalidatorObserver, EventStreamLoggerObserver |

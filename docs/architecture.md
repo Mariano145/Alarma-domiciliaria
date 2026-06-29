@@ -1,26 +1,26 @@
-# Arquitectura del Sistema — Alarma para Hogar IoT
+# System Architecture — IoT Home Alarm
 
-## 1. Contexto y Objetivo
+## 1. Context and Objective
 
-El sistema es una **alarma de seguridad para hogar** basada en IoT que permite:
-- Monitorear eventos de sensores (puerta, movimiento, botones, teclado PIN)
-- Gestionar estados de la alarma (desarmada, armando, armada, alarma disparada)
-- Persistir histórico de eventos en base de datos
-- Visualizar estado en tiempo real y análisis histórico desde un frontend web
-- Detectar anomalías mediante algoritmos de análisis
+The system is an IoT-based **home security alarm** that allows:
+- Monitoring sensor events (door, motion, buttons, PIN keypad)
+- Managing alarm states (disarmed, arming, armed, alarm triggered)
+- Persisting event history in a database
+- Visualizing real-time state and historical analysis from a web frontend
+- Detecting anomalies through analysis algorithms
 
-**Actores principales:**
-- **Usuario del hogar** — Arma/desarma la alarma, consulta estado desde frontend
-- **ESP32 (firmware)** — Dispositivo IoT que captura eventos de sensores y los envía al backend
-- **Auditor del sistema** — Consulta histórico y métricas de analytics
+**Main actors:**
+- **Home user** — Arms/disarms the alarm, checks status from the frontend
+- **ESP32 (firmware)** — IoT device that captures sensor events and sends them to the backend
+- **System auditor** — Queries history and analytics metrics
 
 ---
 
-## 2. Arquitectura del Sistema: Distribuida REST
+## 2. System Architecture: Distributed REST
 
-El sistema sigue una **arquitectura distribuida REST** donde los componentes se comunican exclusivamente vía HTTP REST. Cada componente tiene su propia arquitectura interna (ver sección 3 para el detalle del backend).
+The system follows a **distributed REST architecture** where components communicate exclusively via HTTP REST. Each component has its own internal architecture (see section 3 for backend details).
 
-El sistema está compuesto por 4 containers principales:
+The system is composed of 4 main containers:
 
 ```
 ┌─────────────────┐
@@ -33,16 +33,16 @@ El sistema está compuesto por 4 containers principales:
 ┌─────────────────────────────────────────┐
 │   Backend (Flask + Python)              │
 │   - Controllers (HTTP)                  │
-│   - Services (lógica de negocio)        │
-│   - Repositories (acceso a datos)       │
-│   - Patrones: State, Strategy, Observer │
+│   - Services (business logic)           │
+│   - Repositories (data access)          │
+│   - Patterns: State, Strategy, Observer │
 └────────┬────────────────────────────────┘
          │ SQL (SQLAlchemy)
          ▼
 ┌─────────────────┐
 │   PostgreSQL    │
 │   (Database)    │
-│   Tabla: events │
+│   Table: events │
 └─────────────────┘
          ▲
          │ HTTP GET (polling)
@@ -53,137 +53,137 @@ El sistema está compuesto por 4 containers principales:
 └─────────────────┘
 ```
 
-**Flujo de datos:**
-1. ESP32 captura eventos de sensores → envía a Backend vía POST
-2. Backend valida, persiste en PostgreSQL, actualiza estado de alarma, notifica observers
-3. Frontend hace polling a Backend vía GET para obtener estado actual, histórico y analytics
-4. Frontend renderiza dashboards en tiempo real y tablas históricas
+**Data flow:**
+1. ESP32 captures sensor events → sends to Backend via POST
+2. Backend validates, persists in PostgreSQL, updates alarm state, notifies observers
+3. Frontend polls Backend via GET to obtain current state, history, and analytics
+4. Frontend renders real-time dashboards and historical tables
 
 ---
 
-## 3. Arquitectura por Capas (Backend)
+## 3. Layered Architecture (Backend)
 
-El backend sigue una **arquitectura en capas** clásica con separación de responsabilidades:
+The backend follows a classic **layered architecture** with separation of responsibilities:
 
-### Capa 1: Controllers (HTTP)
-**Responsabilidad:** Recibir requests HTTP, validar parámetros, delegar a services, retornar responses.
+### Layer 1: Controllers (HTTP)
+**Responsibility:** Receive HTTP requests, validate parameters, delegate to services, return responses.
 
-**Clases:**
-- `EventController` — Endpoints de ingesta y consulta de eventos
-- `AlarmController` — Endpoint de estado actual de alarma
-- `AnalyticsController` — Endpoint de métricas calculadas
+**Classes:**
+- `EventController` — Event ingestion and query endpoints
+- `AlarmController` — Current alarm state endpoint
+- `AnalyticsController` — Computed metrics endpoint
 
-**No contiene:** lógica de negocio, acceso directo a DB, validaciones complejas.
+**Does not contain:** business logic, direct DB access, complex validations.
 
-### Capa 2: Services (Lógica de negocio)
-**Responsabilidad:** Orquestar operaciones, aplicar reglas de negocio, gestionar estado, notificar observers.
+### Layer 2: Services (Business Logic)
+**Responsibility:** Orchestrate operations, apply business rules, manage state, notify observers.
 
-**Clases:**
-- `EventService` — Valida eventos, persiste, notifica observers de ingesta
-- `AlarmStateManager` — Mantiene estado actual, gestiona transiciones (patrón State), notifica observers de estado
-- `AnalyticsService` — Ejecuta algoritmos de analytics (patrón Strategy)
+**Classes:**
+- `EventService` — Validates events, persists, notifies ingestion observers
+- `AlarmStateManager` — Maintains current state, manages transitions (State pattern), notifies state observers
+- `AnalyticsService` — Executes analytics algorithms (Strategy pattern)
 
-**No contiene:** lógica HTTP, serialización/deserialización de requests.
+**Does not contain:** HTTP logic, request serialization/deserialization.
 
-### Capa 3: Repositories (Acceso a datos)
-**Responsabilidad:** Abstraer el acceso a PostgreSQL, ejecutar queries, mapear resultados a modelos.
+### Layer 3: Repositories (Data Access)
+**Responsibility:** Abstract PostgreSQL access, execute queries, map results to models.
 
-**Clases:**
-- `EventRepository` — Insertar y consultar eventos con filtros
+**Classes:**
+- `EventRepository` — Insert and query events with filters
 
-**No contiene:** lógica de negocio, validaciones de dominio.
+**Does not contain:** business logic, domain validations.
 
-### Capa 4: Models (Entidades de dominio)
-**Responsabilidad:** Representar las entidades del sistema como objetos Python.
+### Layer 4: Models (Domain Entities)
+**Responsibility:** Represent system entities as Python objects.
 
-**Clases:**
-- `Event` — Evento persistido (eventId, type, deviceId, payload, receivedAt)
-- `AlarmStateResponse` — Estado actual de alarma
-- `AnalyticsResponse` — Resultado de algoritmos
-
----
-
-## 4. Patrones de Diseño
-
-El sistema utiliza 4 patrones GoF para resolver problemas específicos de la arquitectura:
-
-| Patrón | Problema que resuelve | Dónde se aplica |
-|--------|----------------------|-----------------|
-| **State** | La alarma tiene 4 estados con comportamientos diferentes ante los mismos eventos | `AlarmStateManager` + 4 estados concretos |
-| **Strategy** | Necesitamos 3 algoritmos de analytics intercambiables | `AnalyticsService` + 3 estrategias concretas |
-| **Observer #1** | Múltiples componentes necesitan reaccionar cuando cambia el estado de la alarma | `AlarmStateManager` notifica a `LiveStateCacheObserver`, `StateTransitionLoggerObserver` |
-| **Observer #2** | Múltiples componentes necesitan reaccionar cuando llega un nuevo evento | `EventService` notifica a `AnalyticsCacheInvalidatorObserver`, `EventStreamLoggerObserver` |
-
-**Ver detalle completo en:** [`design-patterns.md`](./design-patterns.md)
+**Classes:**
+- `Event` — Persisted event (eventId, type, deviceId, payload, receivedAt)
+- `AlarmStateResponse` — Current alarm state
+- `AnalyticsResponse` — Algorithm results
 
 ---
 
-## 5. Decisiones Arquitectónicas
+## 4. Design Patterns
 
-### 5.1 Framework Backend: Flask
-**Decisión:** Usar Flask como framework backend único.
+The system uses 4 GoF patterns to solve specific architecture problems:
 
-**Razones:**
-- Ecosistema maduro con extensiones para validación (Pydantic), DB (SQLAlchemy), migraciones (Alembic)
-- Equipo familiarizado con Python
+| Pattern | Problem it solves | Where it is applied |
+|---------|-------------------|---------------------|
+| **State** | The alarm has 4 states with different behaviors for the same events | `AlarmStateManager` + 4 concrete states |
+| **Strategy** | We need 3 interchangeable analytics algorithms | `AnalyticsService` + 3 concrete strategies |
+| **Observer #1** | Multiple components need to react when the alarm state changes | `AlarmStateManager` notifies `LiveStateCacheObserver`, `StateTransitionLoggerObserver` |
+| **Observer #2** | Multiple components need to react when a new event arrives | `EventService` notifies `AnalyticsCacheInvalidatorObserver`, `EventStreamLoggerObserver` |
 
-**Alternativas consideradas:** NestJS (TypeScript), Spring Boot (Java).
-
-### 5.2 Base de Datos: PostgreSQL
-**Decisión:** Usar PostgreSQL como base de datos relacional.
-
-**Razones:**
-- Requisito explícito de la consigna
-- Soporte en Flask vía SQLAlchemy
-
-### 5.3 Comunicación: REST HTTP
-**Decisión:** Usar HTTP REST para comunicación ESP32↔Backend y Frontend↔Backend.
-
-**Razones:**
-- Requisito explícito de la consigna
-
-**Alternativas consideradas:** WebSockets — descartado por complejidad adicional y porque polling desde frontend es suficiente para el caso de uso.
-
-### 5.4 Patrón State para gestión de alarma
-**Decisión:** Usar patrón State para modelar la máquina de estados de la alarma.
-
-**Razones:**
-- La alarma tiene 4 estados mutuamente excluyentes con comportamientos diferentes
-- Cada estado encapsula su propia lógica de transiciones
-
-**Alternativas consideradas:** Command (para requests), Factory (para creación), Decorator (para responsabilidades dinámicas) — descartados porque no modelan estados mutuamente excluyentes.
-
-### 5.5 Frontend: React con polling
-**Decisión:** Usar React y polling periódico al backend para actualización en vivo.
-
-**Razones:**
-- Requisito explícito de la consigna
-- Polling simple de implementar y suficiente para actualización en tiempo real (intervalo de 2-5 segundos)
-- No requiere infraestructura adicional (WebSocket server)
-
-**Alternativas consideradas:** WebSockets — descartados por complejidad adicional para el alcance del proyecto.
+**See full details at:** [`design-patterns.md`](./design-patterns.md)
 
 ---
 
-## 6. Restricciones y Consideraciones
+## 5. Architectural Decisions
 
-### Restricciones técnicas
-- **Backend único:** La consigna exige un solo framework backend activo en la entrega final
-- **PostgreSQL obligatorio:** La consigna exige PostgreSQL para persistencia histórica
-- **REST obligatorio:** La consigna exige REST para comunicación entre componentes
-- **Frontend no puede hablar directo con ESP32:** Todo debe pasar por el backend
-- **Código en inglés:** Todo el código fuente y comentarios técnicos deben estar en inglés
-- **Documentación en español:** Informes, Jira y documentación pueden estar en español
+### 5.1 Backend Framework: Flask
+**Decision:** Use Flask as the single backend framework.
 
-### Consideraciones de diseño
-- **Polling vs WebSockets:** Se eligió polling por simplicidad.
-- **Sensor de movimiento:** Solo dispara alarma en estado `ARMED_COUNTDOWN`. En otros estados se ignora para evitar falsas alarmas cuando el usuario está en casa.
-- **Botón de pánico:** Dispara alarma inmediatamente sin importar el estado actual (override de seguridad).
+**Reasons:**
+- Mature ecosystem with extensions for validation (Pydantic), DB (SQLAlchemy), migrations (Alembic)
+- Team familiar with Python
+
+**Alternatives considered:** NestJS (TypeScript), Spring Boot (Java).
+
+### 5.2 Database: PostgreSQL
+**Decision:** Use PostgreSQL as the relational database.
+
+**Reasons:**
+- Explicit requirement from the project brief
+- Support in Flask via SQLAlchemy
+
+### 5.3 Communication: REST HTTP
+**Decision:** Use HTTP REST for ESP32<->Backend and Frontend<->Backend communication.
+
+**Reasons:**
+- Explicit requirement from the project brief
+
+**Alternatives considered:** WebSockets — discarded due to additional complexity and because polling from the frontend is sufficient for the use case.
+
+### 5.4 State Pattern for Alarm Management
+**Decision:** Use the State pattern to model the alarm state machine.
+
+**Reasons:**
+- The alarm has 4 mutually exclusive states with different behaviors
+- Each state encapsulates its own transition logic
+
+**Alternatives considered:** Command (for requests), Factory (for creation), Decorator (for dynamic responsibilities) — discarded because they do not model mutually exclusive states.
+
+### 5.5 Frontend: React with Polling
+**Decision:** Use React and periodic polling to the backend for live updates.
+
+**Reasons:**
+- Explicit requirement from the project brief
+- Polling is simple to implement and sufficient for real-time updates (2-5 second interval)
+- Does not require additional infrastructure (WebSocket server)
+
+**Alternatives considered:** WebSockets — discarded due to additional complexity for the project scope.
 
 ---
 
-## 7. Referencias
+## 6. Constraints and Considerations
 
-- **Patrones de diseño:** [`design-patterns.md`](./design-patterns.md)
-- **Contrato API (OpenAPI):** [`OpenAPI/openapi.yaml`](./OpenAPI/openapi.yaml)
-- **Consigna del proyecto:** [`CONSIGNA.md`](./CONSIGNA.md)
+### Technical Constraints
+- **Single backend:** The brief requires only one active backend framework in the final delivery
+- **PostgreSQL mandatory:** The brief requires PostgreSQL for historical persistence
+- **REST mandatory:** The brief requires REST for communication between components
+- **Frontend cannot talk directly to ESP32:** Everything must go through the backend
+- **Code in English:** All source code and technical comments must be in English
+- **Documentation in Spanish:** Reports, Jira, and documentation may be in Spanish
+
+### Design Considerations
+- **Polling vs WebSockets:** Polling was chosen for simplicity.
+- **Motion sensor:** Only triggers alarm in `ARMED_COUNTDOWN` state. In other states it is ignored to avoid false alarms when the user is at home.
+- **Panic button:** Triggers alarm immediately regardless of current state (safety override).
+
+---
+
+## 7. References
+
+- **Design patterns:** [`design-patterns.md`](./design-patterns.md)
+- **API Contract (OpenAPI):** [`OpenAPI/openapi.yaml`](./OpenAPI/openapi.yaml)
+- **Project brief:** [`CONSIGNA.md`](./CONSIGNA.md)

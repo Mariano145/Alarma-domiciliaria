@@ -1,145 +1,145 @@
 # Git Workflow
 
-Este documento define el flujo de trabajo con ramas que el equipo utiliza para desarrollar el proyecto IoT.
+This document defines the branch workflow that the team uses to develop the IoT project.
 
-## 1. Estructura de Ramas
+## 1. Branch Structure
 
-El proyecto sigue un modelo **Gitflow** con tres tipos de ramas:
+The project follows a **Gitflow** model with three types of branches:
 
-### 1.1 `master` (Rama de Producción)
-- **Propósito:** Contiene el código estable y funcional listo para entrega/evaluación.
-- **Protección:** Solo se actualiza mediante Pull Requests (PR) aprobados desde `develop`.
-- **Regla:** Nunca se commitea directamente en `master`.
+### 1.1 `master` (Production Branch)
+- **Purpose:** Contains stable, functional code ready for delivery/evaluation.
+- **Protection:** Only updated via approved Pull Requests (PR) from `develop`.
+- **Rule:** Never commit directly to `master`.
 
-### 1.2 `develop` (Rama de Integración)
-- **Propósito:** Rama de integración continua donde se fusionan todas las features terminadas.
-- **Uso:** El equipo mergea sus features aquí. Es el punto de prueba antes de pasar a `main`.
-- **Regla:** Se actualiza solo mediante PRs desde ramas `feature/*`.
+### 1.2 `develop` (Integration Branch)
+- **Purpose:** Continuous integration branch where all completed features are merged.
+- **Usage:** The team merges their features here. It is the testing point before moving to `main`.
+- **Rule:** Only updated via PRs from `feature/*` branches.
 
-### 1.3 `feature/*` (Ramas de Desarrollo)
-- **Propósito:** Cada historia de usuario se desarrolla en su propia rama.
-- **Origen:** Se crean desde `develop`.
-- **Destino:** Se mergean de vuelta a `develop` mediante PR.
+### 1.3 `feature/*` (Development Branches)
+- **Purpose:** Each user story is developed in its own branch.
+- **Origin:** Created from `develop`.
+- **Destination:** Merged back to `develop` via PR.
 
 ---
 
-## 2. Nomenclatura de Ramas
+## 2. Branch Naming
 
-Toda rama de trabajo debe seguir este formato:
-
-```
-feature/IOT-XX-descripcion-corta
-```
-
-Donde:
-- `IOT-XX` = clave de la historia de usuario en Jira
-- `descripcion-corta` = breve descripción en minúsculas y guiones
-
-### Ejemplos válidos:
+Every work branch must follow this format:
 
 ```
-feature/IOT-21-ingesta-eventos
-feature/IOT-25-persistencia-postgresql
-feature/IOT-29-maquina-estados
+feature/IOT-XX-short-description
+```
+
+Where:
+- `IOT-XX` = user story key in Jira
+- `short-description` = brief description in lowercase and hyphens
+
+### Valid examples:
+
+```
+feature/IOT-21-event-ingestion
+feature/IOT-25-postgresql-persistence
+feature/IOT-29-state-machine
 feature/IOT-33-frontend-dashboard
-feature/IOT-41-firmware-sensores
-feature/IOT-45-algoritmos-analytics
+feature/IOT-41-firmware-sensors
+feature/IOT-45-analytics-algorithms
 ```
 
 ---
 
-## 3. Flujo de Trabajo Paso a Paso
+## 3. Step-by-Step Workflow
 
-### Paso 1: Crear rama desde develop
+### Step 1: Create branch from develop
 
 ```bash
-# Asegurarse de estar en develop y actualizado
+# Make sure you are on develop and up to date
 git checkout develop
 git pull origin develop
 
-# Crear nueva rama para la historia
-git checkout -b feature/IOT-21-ingesta-eventos
+# Create new branch for the story
+git checkout -b feature/IOT-21-event-ingestion
 ```
 
-### Paso 2: Desarrollar y commitear
+### Step 2: Develop and commit
 
-- Trabajar en la rama `feature/*`
-- Hacer commits frecuentes
-- Seguir la **convención de commits** definida en `docs/commits-convention.md`
+- Work on the `feature/*` branch
+- Make frequent commits
+- Follow the **commit convention** defined in `docs/commits-convention.md`
 
-### Paso 3: Actualizar con develop antes del PR
+### Step 3: Update with develop before PR
 
 ```bash
-# Traer cambios de otros compañeros que ya mergearon
+# Bring changes from teammates who have already merged
 git checkout develop
 git pull origin develop
-git checkout feature/IOT-21-ingesta-eventos
+git checkout feature/IOT-21-event-ingestion
 git merge develop
-# Resolver conflictos si los hay
+# Resolve conflicts if any
 ```
 
-### Paso 4: Crear Pull Request
+### Step 4: Create Pull Request
 
-- Push de la rama al remoto
-- Crear PR en GitHub hacia `develop`
-- **Título del PR:** debe incluir la clave Jira (ej: `IOT-21: Implementa ingesta de eventos de sensores`)
-- **Descripción:** mencionar qué se implementó, qué archivos se tocaron
+- Push the branch to the remote
+- Create PR on GitHub targeting `develop`
+- **PR title:** must include the Jira key (e.g., `IOT-21: Implement sensor event ingestion`)
+- **Description:** mention what was implemented, which files were changed
 
-### Paso 5: Revisión y Aprobación
+### Step 5: Review and Approval
 
-- **Mínimo 2 aprobaciones** de personas distintas del equipo (configurado en GitHub)
-- Revisar código, tests, linter, y que cumpla con el contrato OpenAPI
+- **Minimum 2 approvals** from different team members (configured in GitHub)
+- Review code, tests, linter, and compliance with the OpenAPI contract
 
-### Paso 6: Merge
+### Step 6: Merge
 
-- Una vez aprobado, se hace merge a `develop`
-- Se elimina la rama `feature/*` después del merge
+- Once approved, merge to `develop`
+- Delete the `feature/*` branch after merging
 
-### Paso 7: Pasar a main (cuando todo esté integrado)
+### Step 7: Move to main (when everything is integrated)
 
-- Cuando un conjunto de features está estable en `develop`
-- Se crea PR de `develop` → `main`
-- Requiere las mismas aprobaciones
-
----
-
-## 4. Criterio de Merge
-
-Para que un PR pueda mergearse a `develop` o `main`:
-
-1. **Aprobaciones:** Mínimo 2 aprobaciones (o 1 si el equipo tiene 2 integrantes)
-2. **Tests:** Todos los tests unitarios deben pasar (backend, frontend, firmware)
-3. **Linter:** El código debe pasar el linter (`pre-commit`)
-4. **CI/CD:** GitHub Actions debe reportar checks exitosos (build + tests)
-5. **Jira:** El PR debe referenciar la clave de historia de usuario
-
-## 6. Relación entre Ramas y Jira
-
-| Elemento | Vinculación con Jira |
-|----------|---------------------|
-| **Rama** | `feature/IOT-XX` → historia IOT-XX en Jira |
-| **Commit** | `feat(backend): IOT-XX implementa...` → clave IOT-XX |
-| **PR** | Título: `IOT-XX: descripción de la feature` |
-| **Merge** | Al mergear, Jira puede detectar el PR y actualizar la historia |
+- When a set of features is stable on `develop`
+- Create PR from `develop` to `main`
+- Requires the same approvals
 
 ---
 
-## 7. Resumen Visual
+## 4. Merge Criteria
+
+For a PR to be merged to `develop` or `main`:
+
+1. **Approvals:** Minimum 2 approvals (or 1 if the team has 2 members)
+2. **Tests:** All unit tests must pass (backend, frontend, firmware)
+3. **Linter:** Code must pass the linter (`pre-commit`)
+4. **CI/CD:** GitHub Actions must report successful checks (build + tests)
+5. **Jira:** The PR must reference the user story key
+
+## 6. Relationship Between Branches and Jira
+
+| Element | Jira Linkage |
+|---------|-------------|
+| **Branch** | `feature/IOT-XX` -> story IOT-XX in Jira |
+| **Commit** | `feat(backend): IOT-XX implements...` -> key IOT-XX |
+| **PR** | Title: `IOT-XX: feature description` |
+| **Merge** | When merging, Jira can detect the PR and update the story |
+
+---
+
+## 7. Visual Summary
 
 ```
         ┌─────────────────────────────────────────────────────────┐
-        │                    main (protegida)                     │
-        │              Código estable, evaluación                 │
+        │                    main (protected)                     │
+        │              Stable code, evaluation                    │
         └─────────────────────────────────────────────────────────┘
-                              ↑  PR con 2 aprobaciones
-                              │  + tests pasando
+                              ↑  PR with 2 approvals
+                              │  + tests passing
                               │
         ┌─────────────────────────────────────────────────────────┐
-        │                  develop (protegida)                    │
-        │           Integración de todas las features             │
+        │                  develop (protected)                    │
+        │           Integration of all features                   │
         └─────────────────────────────────────────────────────────┘
            ↑                    ↑                    ↑
-           │ PR 2 aprobaciones  │ PR 2 aprobaciones  │ PR 2 aprobaciones
+           │ PR 2 approvals     │ PR 2 approvals     │ PR 2 approvals
            │                    │                    │
     ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
     │ feature/IOT- │    │ feature/IOT- │    │ feature/IOT- │
@@ -147,10 +147,10 @@ Para que un PR pueda mergearse a `develop` o `main`:
     └──────────────┘    └──────────────┘    └──────────────┘
 ```
 
-## 9. Notas para el Equipo
+## 9. Notes for the Team
 
-- **Nunca** commitear directo en `main` o `develop`
-- **Siempre** crear rama `feature/*` desde `develop` actualizada
-- **Siempre** incluir la clave Jira en commits y PRs
-- **Revisar** PRs de otros antes de aprobar: código, tests, linter, documentación
-- **Actualizar** Jira cuando se termine una subtarea (mover a "Finalizada")
+- **Never** commit directly to `main` or `develop`
+- **Always** create a `feature/*` branch from an up-to-date `develop`
+- **Always** include the Jira key in commits and PRs
+- **Review** other team members' PRs before approving: code, tests, linter, documentation
+- **Update** Jira when a subtask is finished (move to "Done")
