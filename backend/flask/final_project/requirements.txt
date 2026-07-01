@@ -10,3 +10,4 @@ flasgger>=0.9.7
 pytest==8.2.0
 ruff==0.4.0
 python-ulid>=1.0.0
+gunicorn>=22.0.0
