@@ -1,13 +1,13 @@
-# Jira
+# Project Management
 
-This course requires the repository to unambiguously reference the Jira project used by the team (name, URL, and key prefix).
+This project was originally developed as a university assignment using Jira for project management.
 
-## Project
+## Original Setup (University)
 
-- **Name**: Proyecto IoT Software
+- **Tool**: Jira (Atlassian)
 - **Key prefix**: `IOT`
-- **URL**: https://proyectofacu.atlassian.net/jira/software/projects/IOT/boards/68
+- **Workflow**: Gitflow with feature branches
 
-## Useful Views
+## Current State
 
-- **Backlog / list**: https://proyectofacu.atlassian.net/jira/software/projects/IOT/list
+This repository is now maintained as a personal portfolio project. The Jira board is no longer actively used, but the Git workflow and commit conventions documented in [`workflow-git.md`](workflow-git.md) and [`commits-convention.md`](commits-convention.md) remain as references for professional practices.

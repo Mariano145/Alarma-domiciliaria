@@ -2,7 +2,9 @@
 
 End-to-end IoT home alarm: ESP32 sensors → Flask backend → PostgreSQL → real-time Next.js dashboard.
 
-**Software Engineering Final Project — Universidad Nacional de Córdoba (2026)**
+**Live demo:** [alarma-domiciliaria.vercel.app](https://alarma-domiciliaria.vercel.app)
+
+Built as final project for Software Engineering at Universidad Nacional de Córdoba (2026).
 
 ## Architecture
 
@@ -18,6 +20,16 @@ ESP32 (C++) → REST → Flask (Python) → SQLAlchemy → PostgreSQL
 | Backend | Flask, SQLAlchemy, Alembic | `backend/flask/final_project/` |
 | Frontend | Next.js 16, React 19, Tailwind, shadcn/ui | `frontend/dashboard/` |
 | Database | PostgreSQL 16 | `docker/docker-compose.yml` |
+
+## Screenshots
+
+### Dashboard
+
+![Dashboard showing real-time alarm state and event history](docs/screenshots/dashboard.png)
+
+### System Architecture
+
+![System architecture diagram](docs/Diagrams/components_diagram.drawio.png)
 
 ## Quick Start
 
@@ -46,6 +58,15 @@ pnpm install && pnpm dev
 | Swagger UI | http://localhost:5000/apidocs/ |
 | Frontend | http://localhost:3000 |
 | PostgreSQL | localhost:5433 |
+
+## Emulate ESP32 Events
+
+No hardware needed. Send simulated sensor events to test the system:
+
+```bash
+pip install requests
+python scripts/emulate_esp32.py
+```
 
 ## Design Patterns
 
@@ -91,7 +112,16 @@ cd firmware/esp32 && pio test -e native_test
 | [Commit Convention](docs/commits-convention.md) | Conventional Commits with Jira keys |
 | [API Contract](docs/OpenAPI/openapi.yaml) | OpenAPI 3.0 specification |
 | [Project Brief](docs/CONSIGNA.md) | University evaluation criteria |
-| [Jira Board](docs/jira.md) | Project management link |
+
+## Author
+
+**Mariano Stroppa**
+
+- GitHub: [@Mariano145](https://github.com/Mariano145)
+- LinkedIn: [marianostroppa](https://www.linkedin.com/in/marianostroppa)
+- Email: marianostroppa1@gmail.com
+
+This project demonstrates full-stack development, IoT integration, and production deployment.
 
 ## License
 
