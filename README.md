@@ -27,10 +27,6 @@ ESP32 (C++) → REST → Flask (Python) → SQLAlchemy → PostgreSQL
 
 ![Dashboard showing real-time alarm state and event history](docs/screenshots/dashboard.png)
 
-### System Architecture
-
-![System architecture diagram](docs/Diagrams/components_diagram.drawio.png)
-
 ## Quick Start
 
 ```bash
