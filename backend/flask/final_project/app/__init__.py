@@ -75,4 +75,8 @@ def create_app() -> Flask:
     app.register_blueprint(events_bp,    url_prefix="/api/v1/events")
     app.register_blueprint(alarm_bp,     url_prefix="/api/v1/alarm")
     app.register_blueprint(analytics_bp, url_prefix="/api/v1/analytics")
+
+    from app.services.event_cleanup import start_cleanup_task
+    start_cleanup_task(app)
+
     return app

@@ -21,12 +21,6 @@ ESP32 (C++) → REST → Flask (Python) → SQLAlchemy → PostgreSQL
 | Frontend | Next.js 16, Tailwind, shadcn/ui | `frontend/dashboard/` |
 | Database | PostgreSQL 16 | `docker/docker-compose.yml` |
 
-## Screenshots
-
-### Dashboard
-
-![Dashboard showing real-time alarm state and event history](docs/screenshots/dashboard.png)
-
 ## Quick Start
 
 ```bash
