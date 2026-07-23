@@ -18,7 +18,7 @@ ESP32 (C++) → REST → Flask (Python) → SQLAlchemy → PostgreSQL
 |-----------|-------|------|
 | Firmware | C++ / PlatformIO | `firmware/esp32/` |
 | Backend | Flask, SQLAlchemy, Alembic | `backend/flask/final_project/` |
-| Frontend | Next.js 16, React 19, Tailwind, shadcn/ui | `frontend/dashboard/` |
+| Frontend | Next.js 16, Tailwind, shadcn/ui | `frontend/dashboard/` |
 | Database | PostgreSQL 16 | `docker/docker-compose.yml` |
 
 ## Screenshots
